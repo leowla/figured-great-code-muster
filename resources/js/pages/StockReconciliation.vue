@@ -534,17 +534,20 @@ const sourceBadgeClass = {
                     <h3 class="mb-2 text-sm font-semibold">The paper trail</h3>
 
                     <!-- Tabs Navigation Bar -->
-                    <div class="inline-flex h-9 items-center justify-center rounded-lg bg-fg-muted-grey/30 p-1 text-fg-mid-grey mb-4 w-full shrink-0">
+                    <div class="mb-4 flex w-full shrink-0 items-center gap-1 overflow-x-auto rounded-lg border border-fg-muted-grey bg-white p-1">
                         <button
                             v-for="(recs, type) in groupedRecords"
                             :key="type"
                             v-show="recs.length > 0"
                             @click="activeRightTab = type"
-                            class="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-                            :class="activeRightTab === type ? 'bg-white text-fg-dark-grey shadow-sm' : 'hover:text-fg-dark-grey'"
+                            class="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+                            :class="activeRightTab === type ? 'bg-fg-main-blue text-white shadow-sm' : 'text-fg-mid-grey hover:bg-fg-super-pale-grey'"
                         >
                             {{ type }}
-                            <span class="ml-1.5 rounded-full bg-fg-muted-grey px-1.5 py-0.5 text-[10px] font-bold text-fg-light-grey">
+                            <span
+                                class="ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                                :class="activeRightTab === type ? 'bg-white/20 text-white' : 'bg-fg-muted-grey text-fg-light-grey'"
+                            >
                                 {{ recs.length }}
                             </span>
                         </button>

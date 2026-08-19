@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Http;
  */
 class AiController extends Controller
 {
+    /**
+     * Original generic AI endpoint (used by AI Example tab)
+     */
     public function __invoke(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -26,7 +29,7 @@ class AiController extends Controller
         $apiKey = config('services.anthropic.key');
         if (! $apiKey || str_starts_with($apiKey, 'sk-ant-your-key')) {
             return response()->json([
-                'error' => 'No Anthropic API key configured. Set ANTHROPIC_API_KEY in .env (ask a Figgie for the key).',
+                'error' => 'No Anthropic API key configured. Set ANTHROPIC_API_KEY in .env.',
             ], 500);
         }
 
@@ -56,7 +59,6 @@ class AiController extends Controller
             ], $response->status());
         }
 
-        // The response content is a list of blocks; concatenate the text ones.
         $text = collect($response->json('content'))
             ->where('type', 'text')
             ->pluck('text')

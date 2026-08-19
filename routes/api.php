@@ -27,6 +27,7 @@ Route::put('/invoices/{invoice}', [InvoiceController::class, 'update']);
 
 // Page 5: Stock Reconciliation
 Route::get('/stock', [StockController::class, 'index']);
+Route::post('/stock/suggest-movements', [StockController::class, 'suggestMovements']);
 Route::post('/stock-movements', [StockController::class, 'storeMovement']);
 Route::delete('/stock-movements/{stockMovement}', [StockController::class, 'destroyMovement']);
 

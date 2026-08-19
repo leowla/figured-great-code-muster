@@ -1,6 +1,7 @@
 <script setup>
 import axios from 'axios';
-import { computed, onMounted, ref } from 'vue';
+import Chart from 'chart.js/auto';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { shortDate } from '../format';
 
 const classes = ref([]);
@@ -15,7 +16,14 @@ const movementForm = ref({
     note: '',
 });
 
+// 'table' shows the line-by-line tally, 'chart' shows movements vs. recorded
+// closing as a bar per stock class.
+const viewMode = ref('table');
+const chartCanvases = {}; // stock class id -> <canvas> element
+const chartInstances = {}; // stock class id -> Chart instance
+
 onMounted(load);
+onBeforeUnmount(() => Object.values(chartInstances).forEach((chart) => chart.destroy()));
 
 async function load() {
     const { data } = await axios.get('/api/stock');
@@ -44,6 +52,54 @@ function tally(stockClass) {
 
 const canSave = computed(
     () => movementForm.value.stock_class_id && movementForm.value.quantity > 0 && movementForm.value.type,
+);
+
+function setChartCanvas(stockClass, el) {
+    if (el) {
+        chartCanvases[stockClass.id] = el;
+    }
+}
+
+// Redraw every stock class's chart: top bar is the calculated closing from
+// keyed movements, bottom bar is the farmer's recorded closing.
+function renderCharts() {
+    for (const stockClass of classes.value) {
+        const canvas = chartCanvases[stockClass.id];
+        if (!canvas) continue;
+
+        chartInstances[stockClass.id]?.destroy();
+        chartInstances[stockClass.id] = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: ['Keyed movements', 'Recorded closing'],
+                datasets: [
+                    {
+                        data: [tally(stockClass).calculated, stockClass.closing_count],
+                        backgroundColor: ['#296fdc', '#607d8b'],
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                    },
+                ],
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true } },
+            },
+        });
+    }
+}
+
+watch(
+    [classes, viewMode],
+    async () => {
+        if (viewMode.value !== 'chart') return;
+        await nextTick();
+        renderCharts();
+    },
+    { deep: true },
 );
 
 async function addMovement() {
@@ -81,6 +137,24 @@ const sourceBadgeClass = {
 
         <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div class="space-y-4">
+                <!-- Table / chart toggle -->
+                <div class="flex items-center gap-1 text-sm">
+                    <button
+                        class="rounded px-3 py-1 font-medium"
+                        :class="viewMode === 'table' ? 'bg-fg-main-blue text-white' : 'text-fg-mid-grey hover:bg-fg-pale-grey'"
+                        @click="viewMode = 'table'"
+                    >
+                        Table
+                    </button>
+                    <button
+                        class="rounded px-3 py-1 font-medium"
+                        :class="viewMode === 'chart' ? 'bg-fg-main-blue text-white' : 'text-fg-mid-grey hover:bg-fg-pale-grey'"
+                        @click="viewMode = 'chart'"
+                    >
+                        Chart
+                    </button>
+                </div>
+
                 <!-- Tally table per stock class -->
                 <div
                     v-for="stockClass in classes"
@@ -105,7 +179,11 @@ const sourceBadgeClass = {
                         </span>
                     </div>
 
-                    <table class="w-full text-sm">
+                    <div v-if="viewMode === 'chart'" class="h-24">
+                        <canvas :ref="(el) => setChartCanvas(stockClass, el)"></canvas>
+                    </div>
+
+                    <table v-else class="w-full text-sm">
                         <tbody>
                             <tr class="border-t border-fg-pale-grey">
                                 <td class="py-1 text-fg-mid-grey">Opening (1 Jul 2025)</td>

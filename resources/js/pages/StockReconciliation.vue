@@ -36,6 +36,7 @@ const savingSuggestionKey = ref(null);
 const acceptingAll = ref(false);
 const autoApply = ref(false);
 const autoAppliedCount = ref(null);
+const acceptedRecordIds = ref(new Set()); // paper trail record ids covered by an accepted suggestion
 
 onMounted(load);
 onBeforeUnmount(() => Object.values(chartInstances).forEach((chart) => chart.destroy()));
@@ -176,6 +177,7 @@ async function acceptSuggestion(suggestion) {
     });
     classes.value.find((c) => c.id === data.stock_class_id).movements.push(data);
     suggestions.value = suggestions.value.filter((s) => s.key !== suggestion.key);
+    suggestion.record_ids.forEach((id) => acceptedRecordIds.value.add(id));
     savingSuggestionKey.value = null;
 }
 
@@ -330,7 +332,7 @@ const sourceBadgeClass = {
 
                 <div v-if="unresolved.length" class="mt-2 space-y-1 rounded bg-fg-warning-15 p-2 text-xs text-fg-warning-text">
                     <p v-for="(u, i) in unresolved" :key="i">
-                        <span class="font-medium">{{ u.stock_class }} still won't balance:</span> {{ u.reason }}
+                        <span class="font-medium">{{ u.stock_class }}:</span> {{ u.reason }}
                     </p>
                 </div>
 
@@ -529,6 +531,8 @@ const sourceBadgeClass = {
 
                 <!-- RIGHT COLUMN: Tabs -->
                 <div class="lg:col-span-6 flex flex-col h-full">
+                    <h3 class="mb-2 text-sm font-semibold">The paper trail</h3>
+
                     <!-- Tabs Navigation Bar -->
                     <div class="inline-flex h-9 items-center justify-center rounded-lg bg-fg-muted-grey/30 p-1 text-fg-mid-grey mb-4 w-full shrink-0">
                         <button
@@ -557,10 +561,20 @@ const sourceBadgeClass = {
                                 <li
                                     v-for="record in visibleRecords"
                                     :key="record.id"
-                                    class="px-4 py-3 text-sm hover:bg-fg-super-pale-grey transition-colors"
+                                    class="px-4 py-3 text-sm transition-colors"
+                                    :class="acceptedRecordIds.has(record.id) ? 'bg-fg-positive-15' : 'hover:bg-fg-super-pale-grey'"
                                 >
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="text-xs font-mono text-fg-light-grey">{{ shortDate(record.recorded_on) }}</span>
+                                        <span class="flex items-center gap-1.5">
+                                            <span
+                                                v-if="acceptedRecordIds.has(record.id)"
+                                                class="text-fg-positive-dark"
+                                                title="Movement accepted"
+                                            >
+                                                ✓
+                                            </span>
+                                            <span class="text-xs font-mono text-fg-light-grey">{{ shortDate(record.recorded_on) }}</span>
+                                        </span>
                                         <span
                                             class="rounded-full px-2 py-0.5 text-[10px] font-medium"
                                             :class="sourceBadgeClass[record.source] || 'bg-gray-100 text-gray-600'"

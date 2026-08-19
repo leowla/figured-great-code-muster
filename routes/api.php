@@ -33,3 +33,4 @@ Route::delete('/stock-movements/{stockMovement}', [StockController::class, 'dest
 // The AI proxy. The only way frontend code should ever talk to Claude -
 // the API key lives in .env and never leaves the server.
 Route::post('/ai', AiController::class);
+Route::post('/ai/parse-paper-trail', [AiController::class, 'parsePaperTrail']);

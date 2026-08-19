@@ -22,6 +22,8 @@ const suggesting = ref(false);
 const suggestError = ref('');
 const savingSuggestionKey = ref(null);
 const acceptingAll = ref(false);
+const autoApply = ref(false);
+const autoAppliedCount = ref(null);
 
 onMounted(load);
 
@@ -71,11 +73,18 @@ async function removeMovement(stockClass, movement) {
 async function suggestMovements() {
     suggesting.value = true;
     suggestError.value = '';
+    autoAppliedCount.value = null;
     try {
         const { data } = await axios.post('/api/stock/suggest-movements');
         suggestions.value = data.suggestions.map((s, i) => ({ ...s, key: i }));
         skipped.value = data.skipped;
         unresolved.value = data.unresolved;
+
+        if (autoApply.value && suggestions.value.length) {
+            const count = suggestions.value.length;
+            await acceptAllSuggestions();
+            autoAppliedCount.value = count;
+        }
     } catch (e) {
         suggestError.value = e.response?.data?.error ?? e.message;
     } finally {
@@ -137,16 +146,31 @@ const sourceBadgeClass = {
                             missing — flagging duplicates and corrections rather than double-counting them.
                         </p>
                     </div>
-                    <button
-                        class="shrink-0 rounded bg-fg-main-blue px-4 py-1.5 text-sm font-medium text-white hover:bg-fg-main-blue-hover disabled:opacity-50"
-                        :disabled="suggesting"
-                        @click="suggestMovements"
-                    >
-                        {{ suggesting ? 'Reading records…' : 'Suggest movements' }}
-                    </button>
+                    <div class="flex shrink-0 flex-col items-end gap-1">
+                        <button
+                            class="rounded px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                            :class="
+                                autoApply
+                                    ? 'bg-fg-danger hover:bg-fg-danger-dark'
+                                    : 'bg-fg-main-blue hover:bg-fg-main-blue-hover'
+                            "
+                            :disabled="suggesting"
+                            @click="suggestMovements"
+                        >
+                            {{ suggesting ? 'Reading records…' : autoApply ? 'Suggest & apply movements' : 'Suggest movements' }}
+                        </button>
+                        <label class="flex items-center gap-1.5 text-xs text-fg-mid-grey">
+                            <input v-model="autoApply" type="checkbox" class="rounded border-fg-muted-grey" />
+                            Apply automatically, skip review
+                        </label>
+                    </div>
                 </div>
 
                 <p v-if="suggestError" class="rounded bg-fg-danger-9 p-3 text-sm text-fg-danger-dark">{{ suggestError }}</p>
+
+                <p v-if="autoAppliedCount" class="rounded bg-fg-positive-15 p-3 text-sm text-fg-positive-dark">
+                    Applied {{ autoAppliedCount }} movement(s) automatically — no review step.
+                </p>
 
                 <div v-if="suggestions.length" class="space-y-2">
                     <div class="flex justify-end">

@@ -28,6 +28,10 @@ class StockController extends Controller
      */
     public function suggestMovements(): JsonResponse
     {
+        // The full paper trail is a large prompt - Claude can take longer than
+        // PHP's default 30s script limit to respond, well within our 120s HTTP timeout.
+        set_time_limit(150);
+
         $apiKey = config('services.anthropic.key');
         if (! $apiKey || str_starts_with($apiKey, 'sk-ant-your-key')) {
             return response()->json([
